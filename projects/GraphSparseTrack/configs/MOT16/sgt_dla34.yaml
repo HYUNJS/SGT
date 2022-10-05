@@ -1,0 +1,43 @@
+_BASE_: "../Base-SGT.yaml"
+MODEL:
+ WEIGHTS: "/root/checkpoints/sgt_dla34_mot17-CH.pth"
+  TRACKER:
+    INIT_DET_THRESH: 0.5
+    GNN:
+      TOPK_DET_FLAG: True
+      TOPK_DET: 100
+      DET_LOW_THRESH: 0.1
+      NODE_MODEL:
+        CLASSIFY:
+          CLS:
+            FLAG: True
+            INF_THRESH: 0.4
+            LOSS_WEIGHT: 10.0
+      EDGE_MODEL:
+        ENCODE:
+          EDGE_ATTR_LEGACY: False
+        CLASSIFY:
+          INF_THRESH: 0.4
+          LOSS_WEIGHT: 0.1 # 0.1
+SOLVER:
+  OPTIMIZER: "Adam"
+  IMS_PER_BATCH: 12 #12
+  BASE_LR: 0.0002
+  WEIGHT_DECAY: 0.0
+#  STEPS: (20, )
+#  MAX_EPOCH: 30
+  STEPS: (50, )
+  MAX_EPOCH: 60
+  WARMUP_ITERS: 0
+  CHECKPOINT_PERIOD: 10
+TEST:
+  EVAL_PERIOD: 5
+  EVAL_FILTER_DET_SCORE_THRESH: 0.5
+DATASETS:
+#  TRAIN: ("mix_mot16_train",)
+  TRAIN: ("mix_mot16_train", "mix_crowdhuman_train",)
+#  TEST: ("mot17_sub_val",)
+  TEST: ("mot16_test",)
+INPUT:
+  CLIP_BY_IMAGE: False
+  FILTER_OUT_IMAGE: False

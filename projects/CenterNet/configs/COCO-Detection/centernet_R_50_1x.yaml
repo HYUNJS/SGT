@@ -1,0 +1,19 @@
+_BASE_: "../Base-CenterNet.yaml"
+MODEL:
+  BACKBONE:
+    NAME: "ResnetBackbone"
+  CENTERNET:
+    UPSAMPLE_LAYER:
+      NAME: "CenternetDeconv"
+    HEAD:
+      INTER_CHANNELS: 256
+DATASETS:
+  TRAIN: ("nfs_coco_2017_train",)
+  TEST: ("nfs_coco_2017_val",)
+SOLVER:
+  OPTIMIZER: "SGD"
+  IMS_PER_BATCH: 128
+  BASE_LR: 0.02
+  STEPS: (81000, 108000)
+  WARMUP_ITERS: 1000
+  MAX_EPOCH: 140

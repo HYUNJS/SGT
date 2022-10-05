@@ -1,0 +1,61 @@
+_BASE_: "../Base-SGT.yaml"
+MODEL:
+  WEIGHTS: "/root/checkpoints/sgt_res18_mot17half-CH.pth"
+  DETECTOR:
+    META_ARCHITECTURE: "CenterNet"
+    WEIGHTS: "/root/checkpoints/ctdet_coco_resdcn18.pth"
+  BACKBONE:
+    NAME: "ResnetBackbone"
+  RESNETS:
+    DEPTH: 18
+  CENTERNET:
+    MODULATE_DEFORM: True
+    DECONV_KERNEL: [ 4, 4, 4 ]
+    DECONV_CHANNEL: [ 512, 256, 128, 64 ]
+    UPSAMPLE_LAYER:
+      NAME: "CenternetDeconv"
+    HEAD:
+      INTER_CHANNELS: 64 # 64 for resnet, 256 for dla
+  TRACKER:
+    INIT_DET_THRESH: 0.5
+    ENABLED: True
+    CUT_DET_GRAD: True
+    CUT_ID_GRAD: False
+    CUT_EDGE_GRAD: False
+    META_ARCHITECTURE: "GraphTracker"
+    GNN:
+      TOPK_DET_FLAG: True
+      TOPK_DET: 100
+      DET_LOW_THRESH: 0.1
+      NODE_MODEL:
+        CLASSIFY:
+          CLS:
+            FLAG: True
+            INF_THRESH: 0.4
+            LOSS_WEIGHT: 10.0
+      EDGE_MODEL:
+        ENCODE:
+          EDGE_ATTR_LEGACY: False
+        CLASSIFY:
+          INF_THRESH: 0.4
+          LOSS_WEIGHT: 1.0 # 0.1
+SOLVER:
+  OPTIMIZER: "Adam"
+  IMS_PER_BATCH: 12 # 12
+  BASE_LR: 0.0002 # 0.0002
+  WEIGHT_DECAY: 0.0
+  STEPS: (20, )
+  MAX_EPOCH: 30
+#  STEPS: (50, )
+#  MAX_EPOCH: 60
+  WARMUP_ITERS: 0
+  CHECKPOINT_PERIOD: 5
+TEST:
+  EVAL_PERIOD: 5
+  EVAL_FILTER_DET_SCORE_THRESH: 0.5
+DATASETS:
+  TRAIN: ("mix_mot17_sub_train", "mix_crowdhuman_train",)
+  TEST: ("mot17_sub_val",)
+INPUT:
+  CLIP_BY_IMAGE: False
+  FILTER_OUT_IMAGE: False

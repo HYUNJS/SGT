@@ -1,0 +1,52 @@
+_BASE_: "../Base-SGT.yaml"
+MODEL:
+  WEIGHTS: "/root/checkpoints/sgt_hg104_mot17half-CH.pth"
+  DETECTOR:
+    META_ARCHITECTURE: "CenterNet"
+    WEIGHTS: "/root/checkpoints/ctdet_coco_hg104.pth"
+  BACKBONE:
+    NAME: "Hourglass"
+  CENTERNET:
+    OUTPUT_SIZE: (640, 1152)
+    HM_SIZE: (160, 288)
+    UPSAMPLE_LAYER:
+      NAME: ""
+    HEAD:
+      INTER_CHANNELS: 256 # 64 for resnet, 256 for dla
+  TRACKER:
+    INIT_DET_THRESH: 0.5
+    GNN:
+      TOPK_DET: 100
+      NODE_MODEL:
+        UPDATE:
+          IN_DIM: 256
+        CLASSIFY:
+          CLS:
+            FLAG: True
+            INF_THRESH: 0.4
+            LOSS_WEIGHT: 10.0
+      EDGE_MODEL:
+        CLASSIFY:
+          INF_THRESH: 0.4
+          LOSS_WEIGHT: 1.0
+SOLVER:
+  OPTIMIZER: "Adam"
+  IMS_PER_BATCH: 12
+  BASE_LR: 0.0002
+  WEIGHT_DECAY: 0.0
+  STEPS: (30, )
+  MAX_EPOCH: 40
+#  STEPS: (50, )
+#  MAX_EPOCH: 60
+  WARMUP_ITERS: 0
+  CHECKPOINT_PERIOD: 5
+TEST:
+  EVAL_PERIOD: 5
+  EVAL_FILTER_DET_SCORE_THRESH: 0.5
+DATASETS:
+  TRAIN: ("mix_mot17_sub_train", "mix_crowdhuman_train",)
+  TEST: ("mot17_sub_val",)
+#  TEST: ("mot17_test",)
+INPUT:
+  CLIP_BY_IMAGE: False
+  FILTER_OUT_IMAGE: False

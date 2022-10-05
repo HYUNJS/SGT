@@ -1,0 +1,11 @@
+_BASE_: "../Base-CenterNet.yaml"
+MODEL:
+  WEIGHTS: "ctdet_coco_dla_2x.pth"
+  BACKBONE:
+    NAME: "DLA"
+  CENTERNET:
+    UPSAMPLE_LAYER:
+      NAME: "DLASegUp"
+DATASETS:
+  TRAIN: ("nfs_coco_2017_train",)
+  TEST: ("nfs_coco_2017_val",)

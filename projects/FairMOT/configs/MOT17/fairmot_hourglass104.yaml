@@ -1,0 +1,39 @@
+_BASE_: "../Base-FairMOT.yaml"
+MODEL:
+  DETECTOR:
+    WEIGHTS: "centernet_hg104_coco.pth"
+  BACKBONE:
+    NAME: "Hourglass"
+  CENTERNET:
+    OUTPUT_SIZE: (640, 1152)
+    HM_SIZE: (160, 288)
+    UPSAMPLE_LAYER:
+      NAME: ""
+    NUM_CLASSES: 1
+    HEAD:
+      REID_DIM: 128
+      INTER_CHANNELS: 256 # 64 for resnet, 256 for dla and hg
+    MAX_PER_IMAGE: 500
+    TLBR_FLAG: True
+  TRACKER:
+    ENABLED: True
+    META_ARCHITECTURE: "JDETracker"
+SOLVER:
+  IMS_PER_BATCH: 12
+  BASE_LR: 0.0001
+  WEIGHT_DECAY: 0.0
+  STEPS: (50,)
+  MAX_EPOCH: 60
+  WARMUP_ITERS: 0
+  CHECKPOINT_PERIOD: 30
+TEST:
+  EVAL_PERIOD: 5
+  EVAL_FILTER_DET_SCORE_THRESH: 0.4
+DATASETS:
+  TRAIN: ("mix_mot17_sub_train", "mix_crowdhuman_train",)
+  TEST: ("mot17_sub_val",)
+INPUT:
+  CLIP_BY_IMAGE: False # mot17
+  NORM_BY_MEAN_STD_FLAG: True
+  FORMAT: 'BGR'
+  FILTER_OUT_IMAGE: False

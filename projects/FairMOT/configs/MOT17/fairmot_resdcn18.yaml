@@ -1,0 +1,41 @@
+_BASE_: "../Base-FairMOT.yaml"
+MODEL:
+  DETECTOR:
+    WEIGHTS: "/mnt/video_nfs4/Det2_models/COCO-Detection/centernet_res18_coco.pth"
+  BACKBONE:
+    NAME: "ResnetBackbone"
+  RESNETS:
+    DEPTH: 18
+  CENTERNET:
+    MODULATE_DEFORM: True
+    DECONV_KERNEL: [4, 4, 4]
+    DECONV_CHANNEL: [512, 256, 128, 64]
+    UPSAMPLE_LAYER:
+      NAME: "CenternetDeconv"
+    HEAD:
+      INTER_CHANNELS: 64 # 64 for resnet, 256 for dla
+    MAX_PER_IMAGE: 500
+  TRACKER:
+    ENABLED: True
+    META_ARCHITECTURE: "JDETracker"
+SOLVER:
+  IMS_PER_BATCH: 12
+  BASE_LR: 0.0001
+  WEIGHT_DECAY: 0.0
+#  STEPS: (50,)
+#  MAX_EPOCH: 60
+  STEPS: (20, )
+  MAX_EPOCH: 30
+  WARMUP_ITERS: 0
+  CHECKPOINT_PERIOD: 30
+TEST:
+  EVAL_PERIOD: 5
+  EVAL_FILTER_DET_SCORE_THRESH: 0.4
+DATASETS:
+  TRAIN: ("mix_mot17_sub_train",)
+  TEST: ("mot17_sub_val",)
+INPUT:
+  CLIP_BY_IMAGE: False # mot17
+  NORM_BY_MEAN_STD_FLAG: True
+  FORMAT: 'BGR'
+  FILTER_OUT_IMAGE: False

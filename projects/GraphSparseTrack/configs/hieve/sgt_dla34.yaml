@@ -1,0 +1,49 @@
+_BASE_: "../Base-SGT.yaml"
+MODEL:
+  WEIGHTS: "/root/checkpoints/sgt_dla34_hieve.pth"
+  DETECTOR:
+    ENABLED: True
+    FREEZE: False
+    META_ARCHITECTURE: "CenterNet"
+    WEIGHTS: "/root/checkpoints/ctdet_coco_dla_2x_converted.pth"
+  TRACKER:
+    INIT_DET_THRESH: 0.5
+    GNN:
+      TOPK_DET_FLAG: True
+      TOPK_DET: 100
+      DET_LOW_THRESH: 0.01
+      NODE_MODEL:
+        CLASSIFY:
+          CLS:
+            FLAG: True
+            INF_THRESH: 0.4
+            LOSS_WEIGHT: 10.0
+      EDGE_MODEL:
+        CLASSIFY:
+          INF_THRESH: 0.4
+#          LOSS_WEIGHT: 0.1
+          LOSS_WEIGHT: 1.0
+SOLVER:
+  OPTIMIZER: "Adam"
+  IMS_PER_BATCH: 12 # 12
+  BASE_LR: 0.0002 # 0.0002
+  WEIGHT_DECAY: 0.0
+  STEPS: (20, )
+  MAX_EPOCH: 30
+#  STEPS: (50, )
+#  MAX_EPOCH: 60
+  WARMUP_ITERS: 0
+  CHECKPOINT_PERIOD: 5
+TEST:
+  EVAL_PERIOD: 1
+  EVAL_FILTER_DET_SCORE_THRESH: 0.5
+  EVAL_MIN_VISIBILITY: 0.0
+DATASETS:
+  TRAIN: ("mix_hieve_train", )
+  TEST: ("hieve_test",)
+#  TEST: ("hieve_train",)
+#  TEST: ("hieve_sub_val", )
+INPUT:
+  CLIP_BY_IMAGE: True
+  FILTER_OUT_IMAGE: False
+  TRAIN_MIN_VISIBILITY: 0.0

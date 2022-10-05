@@ -1,0 +1,54 @@
+_BASE_: "../Base-SGT.yaml"
+MODEL:
+#  WEIGHTS: "/root/checkpoints/sgt_dla34_mot20.pth"
+  WEIGHTS: "/root/checkpoints/sgt_dla34_mot20-CH.pth"
+  DETECTOR:
+    ENABLED: True
+    FREEZE: False
+    META_ARCHITECTURE: "CenterNet"
+    WEIGHTS: "/root/checkpoints/ctdet_coco_hg104.pth"
+  BACKBONE:
+    NAME: "Hourglass"
+  CENTERNET:
+    OUTPUT_SIZE: (640, 1152)
+    HM_SIZE: (160, 288)
+    UPSAMPLE_LAYER:
+      NAME: ""
+    HEAD:
+      INTER_CHANNELS: 256
+  TRACKER:
+    INIT_DET_THRESH: 0.5
+    GNN:
+      TOPK_DET: 300
+      NODE_MODEL:
+        UPDATE:
+          IN_DIM: 256
+        CLASSIFY:
+          CLS:
+            FLAG: True
+            INF_THRESH: 0.4
+            LOSS_WEIGHT: 10.0
+      EDGE_MODEL:
+        CLASSIFY:
+          INF_THRESH: 0.4
+#          LOSS_WEIGHT: 1.0
+          LOSS_WEIGHT: 0.1
+SOLVER:
+  OPTIMIZER: "Adam"
+  IMS_PER_BATCH: 12
+  BASE_LR: 0.0002 # 0.0002
+  WEIGHT_DECAY: 0.0
+#  STEPS: (30, )
+#  MAX_EPOCH: 40
+  STEPS: (50, )
+  MAX_EPOCH: 60
+  WARMUP_ITERS: 0
+  CHECKPOINT_PERIOD: 5
+TEST:
+  EVAL_PERIOD: 5
+  EVAL_FILTER_DET_SCORE_THRESH: 0.5
+DATASETS:
+#  TRAIN: ("mix_mot20_sub_train", "mix_crowdhuman_train", )
+  TEST: ("mot20_sub_val",)
+INPUT:
+  CLIP_BY_IMAGE: True

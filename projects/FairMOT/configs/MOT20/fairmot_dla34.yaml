@@ -1,0 +1,29 @@
+_BASE_: "../Base-FairMOT.yaml"
+MODEL:
+  DETECTOR:
+    WEIGHTS: "centernet_dla34_coco.pth"
+  TRACKER:
+    ENABLED: True
+    META_ARCHITECTURE: "JDETracker"
+    JDE:
+      DET_THRES: 0.3 # 0.3 for mot20
+      INIT_TRACK_DET_THRES: 0.4
+SOLVER:
+  IMS_PER_BATCH: 12
+  BASE_LR: 0.0001
+  WEIGHT_DECAY: 0.0
+  STEPS: (20, )
+  MAX_EPOCH: 30
+  WARMUP_ITERS: 0
+  CHECKPOINT_PERIOD: 10
+TEST:
+  EVAL_PERIOD: 1
+  EVAL_FILTER_DET_SCORE_THRESH: 0.3
+DATASETS:
+  TRAIN: ("mix_mot20_sub_train", )
+  TEST: ("mot20_sub_val",)
+INPUT:
+  CLIP_BY_IMAGE: True # mot20
+  NORM_BY_MEAN_STD_FLAG: False
+  FORMAT: 'RGB'
+  FILTER_OUT_IMAGE: False

@@ -1,0 +1,40 @@
+_BASE_: "../Base-SGT.yaml"
+MODEL:
+#  WEIGHTS: "/root/checkpoints/sgt_dla34_mot20.pth"
+  WEIGHTS: "/root/checkpoints/sgt_dla34_mot20-CH.pth"
+  TRACKER:
+    INIT_DET_THRESH: 0.5
+    GNN:
+      TOPK_DET_FLAG: True
+      TOPK_DET: 300
+      DET_LOW_THRESH: 0.2
+      NODE_MODEL:
+        CLASSIFY:
+          CLS:
+            FLAG: True
+            INF_THRESH: 0.4
+            LOSS_WEIGHT: 10.0
+      EDGE_MODEL:
+        CLASSIFY:
+          INF_THRESH: 0.4
+          LOSS_WEIGHT: 1.0
+SOLVER:
+  OPTIMIZER: "Adam"
+  IMS_PER_BATCH: 12
+  BASE_LR: 0.0002
+  WEIGHT_DECAY: 0.0
+  STEPS: (20, )
+  MAX_EPOCH: 30
+#  STEPS: (50, )
+#  MAX_EPOCH: 60
+  WARMUP_ITERS: 0
+  CHECKPOINT_PERIOD: 5
+TEST:
+  EVAL_PERIOD: 5
+  EVAL_FILTER_DET_SCORE_THRESH: 0.5
+DATASETS:
+  TRAIN: ("mix_mot20_train",)
+#  TEST: ("mot20_sub_val",)
+  TEST: ("mot20_test",)
+INPUT:
+  CLIP_BY_IMAGE: True
