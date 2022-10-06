@@ -49,7 +49,7 @@ class SparseGraphTracker(nn.Module):
             batched_inputs = list(itertools.chain(*batched_inputs))
             detector_outs = self.detector(batched_inputs, return_all=True)
             det_loss_dict = detector_outs['losses']
-            trk_loss_dict, edge_cls_metrics = self.tracker(detector_outs, batched_inputs=batched_inputs)
+            trk_loss_dict = self.tracker(detector_outs, batched_inputs=batched_inputs)
             final_loss_dict = self.loss_net(det_loss_dict, trk_loss_dict)
 
             return final_loss_dict

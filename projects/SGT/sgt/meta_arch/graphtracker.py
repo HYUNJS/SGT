@@ -56,7 +56,7 @@ class GraphTracker(nn.Module):
 
         ## additional node module
         self.node_cls_loss_flag = cfg.MODEL.TRACKER.GNN.NODE_MODEL.CLASSIFY.FLAG
-        self.node_cls_head = NodeClsHead(cfg.MODEL.TRACKER.GNN.NODE_MODEL) if self.node_cls_loss_flaG else None
+        self.node_cls_head = NodeClsHead(cfg.MODEL.TRACKER.GNN.NODE_MODEL) if self.node_cls_loss_flag else None
 
         ## helper class variables
         self.id_marker = 0 # record the last id recorded

@@ -2,7 +2,7 @@ _BASE_: "../Base-SGT.yaml"
 MODEL:
 #  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17.pth"
 #  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17-CH.pth"
-  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17half.pth"
+#  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17half.pth"
 #  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17half-CH.pth"
   SGT:
     INFERENCE_GT: False
@@ -27,7 +27,7 @@ MODEL:
           LOSS_WEIGHT: 1.0
 SOLVER:
   OPTIMIZER: "Adam"
-  IMS_PER_BATCH: 4 # 12
+  IMS_PER_BATCH: 12 # 12
   BASE_LR: 0.0002 # 0.0002
   WEIGHT_DECAY: 0.0
   STEPS: (20, )
@@ -41,7 +41,8 @@ TEST:
   EVAL_FILTER_DET_SCORE_THRESH: 0.5
   EVAL_MIN_VISIBILITY: 0.0
 DATASETS:
-  TRAIN: ("mix_mot17_sub_train", "mix_crowdhuman_train",)
+  TRAIN: ("mix_mot17_sub_train", )
+#  TRAIN: ("mix_mot17_sub_train", "mix_crowdhuman_train",)
   TEST: ("mot17_sub_val",)
 #  TEST: ("mot17_test",)
 INPUT:
