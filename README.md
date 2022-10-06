@@ -31,12 +31,12 @@
 
 ### Train
 ```
-python projects/SGT/train_net.py --config-file projects/SGT/configs/MOT17/sgt_dla34.yaml --data-dir /root/datasets OUTPUT_DIR /root/sgt_output/mot17_val/dla34_mot17-CH
+python projects/SGT/train_net.py --config-file projects/SGT/configs/MOT17/sgt_dla34.yaml --data-dir /root/datasets --num-gpus 2 OUTPUT_DIR /root/sgt_output/mot17_val/dla34_mot17-CH
 ```
 
 ### Inference
 ```
-python projects/SGT/train_net.py --config-file projects/SGT/configs/MOT17/sgt_dla34.yaml --data-dir /root/datasets --eval-only OUTPUT_DIR /root/sgt_output/mot17_test/dla34_mot17-CH
+python projects/SGT/train_net.py --config-file projects/SGT/configs/MOT17/sgt_dla34.yaml --data-dir /root/datasets --num-gpus 1 --eval-only OUTPUT_DIR /root/sgt_output/mot17_test/dla34_mot17-CH
 ```
 
 ### Visualization
