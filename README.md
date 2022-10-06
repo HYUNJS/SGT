@@ -51,7 +51,9 @@ python projects/Datasets/MOT/vis/vis_seq_from_txt_result.py --data-root <$DATA_R
 ```
 
 ## License
-SGT is licensed under a CC-BY-NC 4.0 License.
+Code of SGT is licensed under the CC-BY-NC 4.0 license and free for research and academic purpose.
+SGT is based on the framework [Detectron2](https://github.com/facebookresearch/detectron2) which is released under the Apache 2.0 license and the detector [CenterNet](https://github.com/xingyizhou/CenterNet) which is released under the MIT license.
+This codebase also provides Detectron2 version of [FairMOT](https://github.com/ifzhang/FairMOT) which is released under the MIT license.
 
 ## Citation
 

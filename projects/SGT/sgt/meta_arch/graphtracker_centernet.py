@@ -3,11 +3,12 @@ import numpy as np
 from torch import nn
 import torch.nn.functional as F
 import torchvision.ops as ops
+
 from projects.FairMOT.fairmot.tracker import matching
-from projects.GraphSparseTrack.graphsparsetrack.utils import *
+from projects.SGT.sgt.utils import *
 
 
-class GST_CenterNet_Decoder(nn.Module):
+class SGT_CenterNet_Decoder(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class GST_CenterNet_Decoder(nn.Module):
         self.topk_det_flag = cfg.MODEL.TRACKER.GNN.TOPK_DET_FLAG
         self.topk_det = cfg.MODEL.TRACKER.GNN.TOPK_DET
         self.det_low_thresh = cfg.MODEL.TRACKER.GNN.DET_LOW_THRESH
-        self.inference_gt = cfg.MODEL.GRAPHSPARSETRACK.INFERENCE_GT
+        self.inference_gt = cfg.MODEL.SGT.INFERENCE_GT
 
         ## config for label assignment
         self.train_by_gt = cfg.MODEL.TRACKER.LABEL_ASSIGNMENT.TRAIN_BY_GT

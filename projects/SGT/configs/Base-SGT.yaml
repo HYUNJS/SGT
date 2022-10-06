@@ -1,5 +1,5 @@
 MODEL:
-  META_ARCHITECTURE: "GraphSparseTrack"
+  META_ARCHITECTURE: "SparseGraphTracker"
   MASK_ON: False
   PIXEL_MEAN: [ 0.408, 0.447, 0.470 ]
   PIXEL_STD: [ 0.289, 0.274, 0.278 ]
@@ -7,6 +7,7 @@ MODEL:
     ENABLED: True
     FREEZE: False
     META_ARCHITECTURE: "CenterNet"
+  IDENTITY_ON: True
   BACKBONE:
     NAME: "DLA"
   CENTERNET:
@@ -19,19 +20,8 @@ MODEL:
     HM_SIZE: (152, 272)
     MAX_PER_IMAGE: 500
     ID_LOSS: False
-  GRAPHSPARSETRACK:
-    AUTO_WEIGHT_FLAG: False
-    AUTO_WEIGHT:
-      S_DET: -0.5 # exp(-s_det) = 1.65
-      S_MATCH: -2.0 # exp(-s_trk) = 7.39
-      S_NCE: -2.0 # exp(-s_nce) = 7.39
-    DET_WEIGHT: 1.0
-    VIS_PATH: ''
   TRACKER:
     ENABLED: True
-    CUT_DET_GRAD: True
-    CUT_ID_GRAD: False
-    CUT_EDGE_GRAD: False
     META_ARCHITECTURE: "GraphTracker"
     GNN:
       GRAPH:
@@ -41,47 +31,21 @@ MODEL:
       N_ITER: 3
       TOPK_DET: 100
       NODE_MODEL:
-        ENCODE:
-          ## shared backbone version
-          FLAG: False
-          IN_DIM: 64
-          FC_DIMS: [ 64, ]
-          OUT_DIM: 64
-          NORM_LAYER: 'layer'
-          ACT_TYPE: 'relu'
-          DROPOUT_P: 0.0
         UPDATE:
-          ADAPTIVE_FLAG: False
-          ## shared backbone version
           IN_DIM: 64
           FC_DIMS: [ 128, 128 ]
-          NORM_LAYER: 'layer'
-          ACT_TYPE: 'relu'
-          DROPOUT_P: 0.0
-          AGG_FUNC: 'mean' # max | mean | sum | w_sum | w_mean
+          AGG_FUNC: 'mean' # max | mean | sum
           REATTACH: False
           SKIP_CONN: False
           TMPNN_FLAG: False
           SHARED_FLAG: False
           SELF_LOOP: False
         CLASSIFY:
-          NCE:
-            FLAG: False
-            TEMPERATURE: 1.
-            LOSS_WEIGHT: 1.
-          CLS:
-            FLAG: True
-            INIT_ID_FLAG: False
-            INIT_THRESH: 0.5
-            INF_THRESH: 0.4
-            DEEP_LOSS: False
-            LOSS_WEIGHT: 10.0
-            ## shared backbone version
-            FC_DIMS: [ 64, 64 ]
-            ## reid feature version
-#            FC_DIMS: [ 128, 128 ]
-            NORM_LAYER: 'layer'
-            ACT_TYPE: 'relu'
+          FLAG: True
+          INF_THRESH: 0.4
+          DEEP_LOSS: False
+          LOSS_WEIGHT: 10.0
+          FC_DIMS: [ 64, 64 ]
       EDGE_MODEL: # ENCODE.OUT_DIM = UPDATE.IN_DIM = CLASSIFY.IN_DIM
         ENCODE:
           DIRECTIONAL_EDGE_ATTR: True
@@ -89,16 +53,9 @@ MODEL:
           IN_DIM: 6 # 2
           FC_DIMS: [ 32, 32 ]
           OUT_DIM: 32
-          NORM_LAYER: 'layer'
-          ACT_TYPE: 'relu'
-          DROPOUT_P: 0.0
         UPDATE:
-          ADAPTIVE_FLAG: False
           IN_DIM: 32
           FC_DIMS: [ 128, 64 ]
-          NORM_LAYER: 'layer'
-          ACT_TYPE: 'relu'
-          DROPOUT_P: 0.0
           REATTACH: True
           SKIP_CONN: False
           SELF_LOOP: False
@@ -106,31 +63,9 @@ MODEL:
           LOSS_WEIGHT: 1.0
           IN_DIM: 32
           FC_DIMS: [ 32, 32 ]
-          NORM_LAYER: 'layer'
-          ACT_TYPE: 'relu'
-          DROPOUT_P: 0.0
-          BIAS: True
-          EVAL_THRESH: 0.40
           INF_THRESH: 0.40
-          NODE_MASK_GT_FLAG: True
-          NODE_MASK_THRESH: 0.40
-          NODE_MIN_SCORE: 0.30
-          LOW_DET_OPT: 0
-          USE_GT_NODE: False
-          MIN_EDGE_PER_FRAME: 5
-          FOCAL_ALPHA: 0.25
-          FOCAL_GAMMA: 2.0
-          EVAL_EDGE_FLAG: False
-          VIS_FLAG: False
-          VIS_CANDIDATE_EDGE: False
-          VIS_OUT_DIR: '/data/video_nfs4/jshyun/sparsetrack_output/graph_vis'
           DEEP_LOSS: False
           EXCLUDE_INIT_LOSS: True
-  IDENTITY_ON: True
-  LOSS:
-    AUTO_WEIGHT_FLAG: False
-    DET_WEIGHT: 1.0
-    ID_WEIGHT: 0.1
 TEST:
   EVAL_DETECTION: True
   EVAL_TRACKING:  True

@@ -21,7 +21,7 @@ class CenterNetLoss(torch.nn.Module):
         self.off_weight = cfg.MODEL.CENTERNET.OFF_WEIGHT
         self.id_weight = cfg.MODEL.CENTERNET.ID_WEIGHT
         self.identity_on = cfg.MODEL.IDENTITY_ON and cfg.DATALOADER.NUM_IDS > 0 and cfg.MODEL.CENTERNET.ID_LOSS
-        self.auto_weight_flag = True
+        self.auto_weight_flag = False
         if hasattr(cfg.MODEL, 'LOSS'):
             self.auto_weight_flag = cfg.MODEL.LOSS.AUTO_WEIGHT_FLAG
             self.det_weight = cfg.MODEL.LOSS.DET_WEIGHT

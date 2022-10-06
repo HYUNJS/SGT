@@ -14,10 +14,9 @@ MODEL:
       DET_LOW_THRESH: 0.01
       NODE_MODEL:
         CLASSIFY:
-          CLS:
-            FLAG: True
-            INF_THRESH: 0.4
-            LOSS_WEIGHT: 10.0
+          FLAG: True
+          INF_THRESH: 0.4
+          LOSS_WEIGHT: 10.0
       EDGE_MODEL:
         CLASSIFY:
           INF_THRESH: 0.4

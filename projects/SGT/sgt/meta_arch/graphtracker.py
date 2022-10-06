@@ -1,52 +1,32 @@
-import torch, os, logging, shutil
+import logging, torch
 import numpy as np
-from scipy.optimize import linear_sum_assignment
 from torch import nn
 import torch.nn.functional as F
 import torchvision.ops as ops
 
 from detectron2.modeling.meta_arch.build import META_ARCH_REGISTRY
-from detectron2.structures import Boxes, Instances
+
 from projects.FairMOT.fairmot.tracker import matching
-from projects.GraphSparseTrack.graphsparsetrack.meta_arch.graph_net import CrossFrameInteractionGNN
-from projects.GraphSparseTrack.graphsparsetrack.utils import *
-from projects.GraphSparseTrack.graphsparsetrack.tracker.tracklet_manager import TrackletManager
-from projects.GraphSparseTrack.graphsparsetrack.meta_arch.graph_heads import NodeClsHead, NodeNCEHead, EdgeClsHead
-from projects.GraphSparseTrack.graphsparsetrack.vis_utils import vis_input, vis_topk_input_pairs
-from projects.GraphSparseTrack.graphsparsetrack.meta_arch.graphtracker_centernet import GST_CenterNet_Decoder
+from projects.SGT.sgt.meta_arch.graph_net import CrossFrameInteractionGNN
+from projects.SGT.sgt.utils import *
+from projects.SGT.sgt.vis_utils import vis_pred_detections_by_pair
+from projects.SGT.sgt.tracker.tracklet_manager import TrackletManager
+from projects.SGT.sgt.meta_arch.graph_heads import NodeClsHead, EdgeClsHead
+from projects.SGT.sgt.meta_arch.graphtracker_centernet import SGT_CenterNet_Decoder
 
 __all__ = ["GraphTracker"]
 
 
-class NodeCNN(nn.Module):
-    def __init__(self, cfg, backbone_out_feat_dim):
-        super().__init__()
-
-        in_dim = backbone_out_feat_dim
-        inter_dims = cfg.MODEL.TRACKER.NODE_PRE_ENCODE.FC_DIMS
-        out_dim = cfg.MODEL.TRACKER.GNN.NODE_MODEL.UPDATE.IN_DIM
-
-        self.feat_conv = nn.Conv2d(in_dim, inter_dims[0], kernel_size=3, padding=1)
-        self.relu = nn.ReLU(inplace=True)
-        self.out_conv = nn.Conv2d(inter_dims[0], out_dim, kernel_size=1)
-        self.out_conv.bias.data.fill_(0)
-
-    def forward(self, x):
-        x = self.feat_conv(x)
-        x = self.relu(x)
-        x = self.out_conv(x)
-        return x
-
 @META_ARCH_REGISTRY.register()
 class GraphTracker(nn.Module):
-    def __init__(self, cfg, backbone_out_feat_dim):
+    def __init__(self, cfg):
         super().__init__()
         self.logger = logging.getLogger(__name__)
 
         self.cfg = cfg
         self.gnn = CrossFrameInteractionGNN(cfg)
         self.edge_cls_head = EdgeClsHead(cfg.MODEL.TRACKER.GNN.EDGE_MODEL.CLASSIFY)
-        self.detection_decoder = GST_CenterNet_Decoder(cfg) # only support CenterNet
+        self.detection_decoder = SGT_CenterNet_Decoder(cfg) # only support CenterNet
 
         ## top-K for previous frame
         self.prev_det_proposal_flag = cfg.MODEL.TRACKER.GNN.GRAPH.PREV_DET_PROPOSAL_FLAG
@@ -64,27 +44,19 @@ class GraphTracker(nn.Module):
         self.second_match_iou_thresh = cfg.MODEL.TRACKER.SECOND_MATCH.IOU_THRESH
         self.second_match_recovery = cfg.MODEL.TRACKER.SECOND_MATCH.RECOVERY_FLAG
 
-
         ## detection threshold values
         self.topk_det_flag = cfg.MODEL.TRACKER.GNN.TOPK_DET_FLAG
         self.topk_det = cfg.MODEL.TRACKER.GNN.TOPK_DET
         self.det_low_thresh = cfg.MODEL.TRACKER.GNN.DET_LOW_THRESH
         self.init_det_thresh = cfg.MODEL.TRACKER.INIT_DET_THRESH
-        self.inference_gt = cfg.MODEL.GRAPHSPARSETRACK.INFERENCE_GT
-
-        ## detection feature extractor config
-        self.reid_flag = cfg.MODEL.CENTERNET.ID_LOSS
+        self.inference_gt = cfg.MODEL.SGT.INFERENCE_GT
 
         ## detach gradient flag
         self.cut_det_grad_flag = cfg.MODEL.TRACKER.CUT_DET_GRAD
-        self.cut_id_grad_flag = cfg.MODEL.TRACKER.CUT_ID_GRAD
 
         ## additional node module
-        self.node_nce_loss_flag = cfg.MODEL.TRACKER.GNN.NODE_MODEL.CLASSIFY.NCE.FLAG
-        self.node_cls_loss_flag = cfg.MODEL.TRACKER.GNN.NODE_MODEL.CLASSIFY.CLS.FLAG
-        self.node_cnn = NodeCNN(cfg, backbone_out_feat_dim) if cfg.MODEL.TRACKER.NODE_PRE_ENCODE.FLAG else None
-        self.node_nce_head = NodeNCEHead(cfg) if self.node_nce_loss_flag else None
-        self.node_cls_head = NodeClsHead(cfg.MODEL.TRACKER.GNN.NODE_MODEL) if self.node_cls_loss_flag else None
+        self.node_cls_loss_flag = cfg.MODEL.TRACKER.GNN.NODE_MODEL.CLASSIFY.FLAG
+        self.node_cls_head = NodeClsHead(cfg.MODEL.TRACKER.GNN.NODE_MODEL) if self.node_cls_loss_flaG else None
 
         ## helper class variables
         self.id_marker = 0 # record the last id recorded
@@ -105,30 +77,21 @@ class GraphTracker(nn.Module):
             loss_dict.update({'node__loss_cls': node_cls_loss})
 
         ## Run edge cls module
-        match_loss, edge_cls_metrics, edge_info = self.edge_cls_head(edge_dicts, t1_info, t2_info)
+        match_loss, edge_info = self.edge_cls_head(edge_dicts, t1_info, t2_info)
         loss_dict.update({'edge__loss_match': match_loss})
 
-        ## Run node cls module
-        if self.node_nce_loss_flag:
-            nce_loss = self.node_nce_head(new_t1_feats_list, new_t2_feats_list, edge_dicts, edge_info)
-            loss_dict.update({'edge__loss_nce': nce_loss})
-        return loss_dict, edge_cls_metrics
+        return loss_dict
 
     def cut_det_grad(self, detector_outputs):
         new_detector_outputs = {}
         for k in detector_outputs.keys():
             new_detector_outputs[k] = detector_outputs[k]
-            if k in ['id', 'fmap']:
-                if self.cut_id_grad_flag:
-                    new_detector_outputs[k] = detector_outputs[k].detach()
-            elif k in ['hm', 'wh', 'reg']:
-                if self.cut_det_grad_flag:
-                    new_detector_outputs[k] = detector_outputs[k].detach()
+            if self.cut_det_grad_flag and k in ['hm', 'wh', 'reg']:
+                new_detector_outputs[k] = detector_outputs[k].detach()
         return new_detector_outputs
 
     def forward(self, detector_outs, batched_inputs=None):
-        # vis_input(batched_inputs[0]) # visualize input training sample
-        node_featmap = self.node_cnn(detector_outs['feat_map']) if self.node_cnn is not None else detector_outs['feat_map']
+        node_featmap = detector_outs['feat_map']
         detector_outs['outputs']['node'] = node_featmap
         det_outs = self.cut_det_grad(detector_outs['outputs'])
         det_outs['inputs'] = batched_inputs
@@ -177,12 +140,12 @@ class GraphTracker(nn.Module):
         new_t1_feats_list, new_t2_feats_list, edge_dicts = self.gnn(t1_info, t2_info)
 
         ## compute loss
-        loss_dict, edge_cls_metrics = self.compute_loss(new_t1_feats_list, new_t2_feats_list, t1_info, t2_info, gt_ids_t2, edge_dicts)
+        loss_dict = self.compute_loss(new_t1_feats_list, new_t2_feats_list, t1_info, t2_info, gt_ids_t2, edge_dicts)
 
-        return loss_dict, edge_cls_metrics
+        return loss_dict
 
     def inference(self, detector_outs, t1_info, batched_inputs):
-        node_featmap = self.node_cnn(detector_outs['feat_map']) if self.node_cnn is not None else detector_outs['feat_map']
+        node_featmap = detector_outs['feat_map']
         detector_outs['outputs']['node'] = node_featmap
 
         decoded_detections = self.detection_decoder.decode_inference(batched_inputs, detector_outs)
@@ -254,12 +217,8 @@ class GraphTracker(nn.Module):
         if not self.node_cls_loss_flag:
             return
 
-        pos_node_mask_t2, init_node_mask_t2 = self.node_cls_head.inference(new_t2_feats[-1])
+        pos_node_mask_t2 = self.node_cls_head.inference(new_t2_feats[-1])
         t2_info['tensor']['pos_node_mask'] = pos_node_mask_t2.reshape(-1)
-        if init_node_mask_t2 is not None:
-            pred_ids_by_node = torch.zeros_like(pred_ids)
-            pred_ids_by_node[..., init_node_mask_t2] = torch.arange(1, init_node_mask_t2.sum() + 1, device=pred_ids.device)
-            t2_info['tensor']['pred_ids'] = pred_ids_by_node
 
     def match_t1_t2(self, t1_info, t2_info, edge_scores, edge_idxs):
         curr_pred_ids, prev_pred_ids = t2_info['tensor']['pred_ids'], t1_info['tensor']['tids']
@@ -324,9 +283,8 @@ class GraphTracker(nn.Module):
                 t2_info_vis = {'img_meta': t2_info['img_meta'], 'tlbr': curr_tlbr, 'id': new_tids, 'mask': t2_info['tensor']['scores'] >= self.init_det_thresh}
                 t1_info_vis.update({'unmatched': u_unconfirmed})
                 t2_info_vis.update({'unmatched': u_detection})
-                save_path = '/mnt/video_nfs4/jshyun/gst_output/vis_inf_by_pair/gst_dla34_17'
-                # save_path = ''
-                self.vis_pred_detections_by_pair(t1_info_vis, t2_info_vis, save_path)
+                save_path = ''
+                vis_pred_detections_by_pair(t1_info_vis, t2_info_vis, save_path)
         elif mask_curr_pred_having_id.sum() > 0:  ## Case 2. No edge > thresh & Yes detection > thresh
             new_tids[mask_curr_pred_having_id] = curr_pred_ids[mask_curr_pred_having_id] + self.id_marker
             num_new_dets = mask_curr_pred_having_id.sum()
@@ -433,266 +391,3 @@ class GraphTracker(nn.Module):
     def reset(self, fps=30):
         self.reset_id_marker()
         self.history_manager.reset(fps)
-
-    @staticmethod
-    def vis_decoded_detections_by_pair(raw_detections, decoded_detections, gt_ids, remap_id=False, show_first_sample=True, save_path=''):
-        ## TODO. FIX for flattened batch version
-        gt_inputs = []
-        for b_idx in range(len(raw_detections['inputs'])):
-            img = raw_detections['inputs'][b_idx]['image']
-            _, img_h, img_w = img.shape
-            gt_output = dict(gt_boxes=decoded_detections['bboxes']['tlbr'][b_idx].cpu().numpy() * 4,
-                             scores=decoded_detections['scores'][b_idx].cpu().numpy().reshape(-1),
-                             gt_ids=gt_ids[b_idx].cpu().numpy().reshape(-1),
-                             gt_classes=decoded_detections['classes'][b_idx].cpu().numpy().reshape(-1))
-            gt_instances = Instances((int(img_h), int(img_w)), **gt_output)
-            gt_inputs.append({'image': img,
-                              'instances': gt_instances,
-                              'sequence_name': raw_detections['inputs'][b_idx]['sequence_name'],
-                              'file_name': raw_detections['inputs'][b_idx]['file_name']})
-        if save_path != '':
-            os.makedirs(save_path)
-        if show_first_sample:
-            vis_topk_input_pairs(gt_inputs[0:2], remap_id, save_path)
-        else:
-            vis_topk_input_pairs(gt_inputs, remap_id, save_path)
-
-    @staticmethod
-    def vis_pred_detections_by_pair(t1_info_vis, t2_info_vis, save_path=''):
-        import matplotlib.pyplot as plt
-        import cv2
-
-        t1_img_name, t2_img_name = t1_info_vis['img_meta']['img_name'], t2_info_vis['img_meta']['img_name']
-        t1_img_ori, t1_tlbr_ori, t1_id_ori = t1_info_vis['img_meta']['image'], t1_info_vis['tlbr'], t1_info_vis['id']
-        t2_img_ori, t2_tlbr_ori, t2_id_ori = t2_info_vis['img_meta']['image'], t2_info_vis['tlbr'], t2_info_vis['id']
-        t2_score_mask = t2_info_vis['mask'].reshape(-1)
-        t1_unmatched_idx, t2_unmatched_idx = t1_info_vis['unmatched'], t2_info_vis['unmatched']
-
-        t1_img, t2_img = np.ascontiguousarray(t1_img_ori), np.ascontiguousarray(t2_img_ori)
-        t1_tlbr, t2_tlbr = t1_tlbr_ori.cpu().numpy(), t2_tlbr_ori.cpu().numpy()
-        t1_id, t2_id = t1_id_ori.reshape(-1).cpu().numpy(), t2_id_ori.reshape(-1).cpu().numpy()
-
-        H, W, _ = t1_img.shape
-        t1_tlbr = (t1_tlbr * 4).astype(int)
-        t2_tlbr = (t2_tlbr * 4).astype(int)
-        t1_tlbr = np.clip(t1_tlbr, [0, 0, 0, 0], [W-1, H-1, W-1, H-1])
-        t2_tlbr = np.clip(t2_tlbr, [0, 0, 0, 0], [W-1, H-1, W-1, H-1])
-
-        font_face = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 0.9
-        font_thickness = 2
-
-        ## visualize t1 with bbox and id
-        t1_unmatched_num, t1_matched_num = 0, 0
-        for idx, t1_box in enumerate(t1_tlbr):
-            if idx in t1_unmatched_idx:
-                font_color = (1, 0, 0) # unmatched box id in RED
-                t1_unmatched_num += 1
-            else:
-                font_color = (0, 1, 0) # matched box id in green
-                t1_matched_num += 1
-            t1_img = cv2.rectangle(t1_img, (t1_box[0], t1_box[1]), (t1_box[2], t1_box[3]), (0, 1, 0), 2)
-            cv2.putText(t1_img, str(t1_id[idx]), (t1_box[0], t1_box[1]), font_face, font_scale, font_color, font_thickness)
-
-        ## visualize t2 with bbox and id
-        t2_new_num, t2_rec_num, t2_matched_num = 0, 0, 0
-        for idx, t2_box in enumerate(t2_tlbr):
-            if t2_id[idx] != 0:
-                box_thickness = 2
-                if t2_score_mask[idx]: # pred box with score higher than threshold
-                    if idx in t2_unmatched_idx:
-                        box_color = (0, 0, 1)
-                        font_color = (0, 0, 1)
-                        t2_new_num += 1
-                    else:
-                        box_color = (0, 1, 0)
-                        font_color = (0, 1, 0)
-                        t2_matched_num += 1
-                else: # recovered detection which score lower than threshold
-                    box_color = (1, 0, 0)
-                    font_color = (1, 0, 0)
-                    t2_rec_num += 1
-            else: # low score unmatched boxes
-                box_thickness = 1
-                box_color = (1, 1, 1)
-                # box_color = (0.5, 0.5, 0.5)
-
-            t2_img = cv2.rectangle(t2_img, (t2_box[0], t2_box[1]), (t2_box[2], t2_box[3]), box_color, box_thickness)
-            if t2_id[idx] != 0:
-                cv2.putText(t2_img, str(t2_id[idx]), (t2_box[0], t2_box[1]), font_face, font_scale, font_color, font_thickness)
-
-        plt.subplot(2, 1, 1)
-        plt.text(-400, 50, 'T1 unmatched in red ID\nT2 recovered in red ID\nT2 new det in blue ID')
-
-        plt.imshow(t1_img)
-        plt.title(f'T1 - {t1_img_name}')
-        plt.axis('off')
-        plt.tight_layout(pad=0)
-
-        plt.subplot(2, 1, 2)
-        plt.text(-400, 50, f'T1 unmatched: {t1_unmatched_num}\nT1 matched: {t1_matched_num}\
-                        \nT2 recovered: {t2_rec_num}\nT2 new: {t2_rec_num}\nT2 matched: {t2_matched_num}')
-        plt.imshow(t2_img)
-        plt.title(f'T2 - {t2_img_name}')
-        plt.axis('off')
-        plt.tight_layout(pad=0)
-
-        if save_path != '':
-            save_filename = os.path.join(save_path, t2_img_name + '.png')
-            if os.path.exists(save_filename):
-                os.remove(save_filename)
-            plt.savefig(save_filename)
-        else:
-            plt.show()
-        plt.clf()
-
-
-def plot_edge_t1_t2(tgt_t1_idx, batched_inputs, detector_outs, edge_scores, edge_idxs, t1_info, t2_info, savename=None):
-    import cv2
-    import os
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as mpl_patches
-    from matplotlib.collections import PatchCollection
-    from projects.Datasets.Transforms.augmentation import CenterAffine
-    from projects.Datasets.MOT.vis.colormap import id2color
-
-    def transform_boxes(boxes, img_info, scale=1):
-        '''
-        transform predicted boxes to target boxes
-
-        Args:
-            boxes: Tensor
-                torch Tensor with (Batch, N, 4) shape
-            img_info: Dict
-                dict contains all information of original image
-            scale: float
-                used for multiscale testing
-        '''
-        boxes = boxes.cpu().numpy().reshape(-1, 4)
-
-        center = img_info['center']
-        size = img_info['size']
-        output_size = (img_info['width'], img_info['height'])
-        src, dst = CenterAffine.generate_src_and_dst(center, size, output_size)
-        trans = cv2.getAffineTransform(np.float32(dst), np.float32(src))
-
-        coords = boxes.reshape(-1, 2)
-        aug_coords = np.column_stack((coords, np.ones(coords.shape[0])))
-        target_boxes = np.dot(aug_coords, trans.T).reshape(-1, 4)
-        return target_boxes
-
-    curr_frame_idx = batched_inputs[0]['frame_idx']
-
-    tgt_t1_idx_wo_offset = tgt_t1_idx - t2_info['box_nums'][0]
-    tgt_edge_mask = edge_idxs[:, 1] == tgt_t1_idx
-    t1_tlbrs = transform_boxes(t1_info['tensor']['boxes_dict']['tlbr'], detector_outs['img_info'])
-    t2_tlbrs = transform_boxes(t2_info['tensor']['boxes_dict']['tlbr'], detector_outs['img_info'])
-    tgt_t2_idxs = edge_idxs[tgt_edge_mask][:, 0].cpu()
-    tgt_t1_tlbrs = t1_tlbrs[tgt_t1_idx_wo_offset]
-    tgt_t2_tlbrs = t2_tlbrs[tgt_t2_idxs]
-    tgt_t2_scores = t2_info['tensor']['scores'][0][tgt_t2_idxs]
-    tgt_edge_scores = edge_scores[tgt_edge_mask]
-    tgt_t1_tids = t1_info['tensor']['tids'][0, tgt_t1_idx - t2_info['box_nums'][0]]
-    tgt_t2_tids = t2_info['tensor']['tids'][0, tgt_t2_idxs]
-
-    img_wh = detector_outs['img_info']['center'] * 2
-    curr_img_filename = batched_inputs[0]['file_name']
-    prev_img_filename = curr_img_filename.replace('{}.jpg'.format(curr_frame_idx + 1), '{}.jpg'.format(curr_frame_idx))
-    curr_img = cv2.imread(curr_img_filename)[:, :, ::-1]
-    prev_img = cv2.imread(prev_img_filename)[:, :, ::-1]
-    prev_patches, curr_patches = [], []
-    patch_kwargs = {'color': 'red', 'linewidth': 1, 'fill': False}
-
-    fig, axs = plt.subplots(2, 1)
-    axs[0].imshow(prev_img)
-    axs[1].imshow(curr_img)
-    axs[0].axis('off')
-    axs[1].axis('off')
-
-    ## draw previous frame bbox
-    patch_kwargs['color'] = 'blue' if tgt_t1_tids == 0 else 'green'
-    prev_patches.append(mpl_patches.Rectangle((tgt_t1_tlbrs[0:2]), *(tgt_t1_tlbrs[2:] - tgt_t1_tlbrs[0:2]), **patch_kwargs))
-    tgt_t1_cxcy = (tgt_t1_tlbrs[0:2] + tgt_t1_tlbrs[2:]) / 2
-    text = "{}".format(tgt_t1_tids.item())
-    text_color = bright_text_label(id2color(tgt_t1_tids.item(), rgb=True, maximum=1))
-    text_kwargs = {"bbox": {"facecolor": "black", "alpha": 0.8, "pad": 0.7, "edgecolor": "none"}, "fontsize": 10.0, "verticalalignment": "top", "zorder": 10}
-    axs[0].text(tgt_t1_tlbrs[0], tgt_t1_tlbrs[1], text, color=text_color, **text_kwargs)
-
-    cs = mpl_patches.ConnectionStyle.Arc3(rad=-0.2)
-
-    for tgt_t2_idx in range(len(tgt_t2_tlbrs)):
-        tgt_t2_tlbr = tgt_t2_tlbrs[tgt_t2_idx]
-        tgt_t2_score = tgt_t2_scores[tgt_t2_idx]
-        tgt_t2_tid = tgt_t2_tids[tgt_t2_idx]
-        tgt_edge_score = tgt_edge_scores[tgt_t2_idx]
-        edge_color = 'r'
-        text_color = bright_text_label(id2color(tgt_t2_tid.item(), rgb=True, maximum=1))
-
-        patch_kwargs['color'] = 'red'
-        if tgt_t2_score < 0.5:
-            patch_kwargs['color'] = 'yellow'
-
-        if tgt_t1_tids != 0 and tgt_t1_tids == tgt_t2_tids[tgt_t2_idx]:
-            edge_color = 'g'
-            # patch_kwargs['color'] = 'green'
-            # if tgt_t2_score < 0.5:
-            #     patch_kwargs['color'] = 'blue'
-
-        tgt_t2_cxcy = (tgt_t2_tlbr[0:2] + tgt_t2_tlbr[2:4]) / 2
-        tgt_t2_cx_in_img = tgt_t2_cxcy[0] >= 0 and tgt_t2_cxcy[0] <= img_wh[0]
-        tgt_t2_cy_in_img = tgt_t2_cxcy[1] >= 0 and tgt_t2_cxcy[1] <= img_wh[1]
-        if tgt_t2_cx_in_img and tgt_t2_cy_in_img:
-            ## do not show objects whose center point out of image
-            ## draw current detection box
-            curr_patches.append(mpl_patches.Rectangle((tgt_t2_tlbr[0:2]), *(tgt_t2_tlbr[2:] - tgt_t2_tlbr[0:2]), **patch_kwargs))
-            text = "{}-{:.2f}".format(tgt_t2_tid.item(), tgt_t2_score.item())
-            axs[1].text(tgt_t1_tlbrs[0], tgt_t1_tlbrs[1], text, color=text_color, **text_kwargs)
-
-            if tgt_edge_score > 0.0:
-                con = mpl_patches.ConnectionPatch(
-                    color=edge_color, alpha=max(tgt_edge_score.item(), 0.1),
-                    xyA=(tgt_t1_cxcy[0], tgt_t1_cxcy[1]), coordsA=axs[0].transData,
-                    xyB=(tgt_t2_cxcy[0], tgt_t2_cxcy[1]), coordsB=axs[1].transData,
-                    connectionstyle=cs)
-                axs[1].add_patch(con)
-
-    axs[0].add_collection(PatchCollection(prev_patches, match_original=True))
-    axs[1].add_collection(PatchCollection(curr_patches, match_original=True))
-
-    fig.tight_layout(pad=1.0)
-    if savename is not None:
-        save_dir = os.path.join(savename, f"{batched_inputs[0]['sequence_name']}-#{curr_frame_idx + 1}")
-        os.makedirs(save_dir, exist_ok=True)
-        plt.savefig(os.path.join(save_dir, f"{tgt_t1_tids.item()}.png"))
-        plt.close()
-    else:
-        plt.show()
-        plt.close()
-
-def change_color_brightness(color, brightness_factor):
-    '''
-    code borrowed from detectron2/utils/visualizer
-    '''
-    import colorsys
-    import matplotlib.colors as mplc
-
-    assert brightness_factor >= -1.0 and brightness_factor <= 1.0
-    color = mplc.to_rgb(color)
-    polygon_color = colorsys.rgb_to_hls(*mplc.to_rgb(color))
-    modified_lightness = polygon_color[1] + (brightness_factor * polygon_color[1])
-    modified_lightness = 0.0 if modified_lightness < 0.0 else modified_lightness
-    modified_lightness = 1.0 if modified_lightness > 1.0 else modified_lightness
-    modified_color = colorsys.hls_to_rgb(polygon_color[0], modified_lightness, polygon_color[2])
-    return modified_color
-
-def bright_text_label(color):
-    import matplotlib.colors as mplc
-
-    color = change_color_brightness(color, brightness_factor=0.7)
-    color = np.maximum(list(mplc.to_rgb(color)), 0.2)
-    color[np.argmax(color)] = max(0.8, np.max(color))
-    return color
-
-# savename = "/mnt/video_nfs4/jshyun/gst_output/mot20_sgt56_edges/"
-# for tgt_t1_idx in torch.nonzero(t1_info['tensor']['tids'].squeeze() != 0):
-#     plot_edge_t1_t2(t2_info['box_nums'][0] + tgt_t1_idx, batched_inputs, detector_outs, edge_scores, edge_idxs, t1_info, t2_info, savename)

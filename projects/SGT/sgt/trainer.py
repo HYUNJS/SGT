@@ -21,10 +21,9 @@ from projects.EpochTrainer.epoch_trainer.default_epoch_trainer import DefaultEpo
 from projects.Datasets.MOT.build import build_mot_train_loader, build_mot_test_loader
 from projects.Datasets.MOT.evaluation.mot_evaluation import MotEvaluator
 from projects.Datasets.MIX.build import build_mix_train_loader
-
-from projects.GraphSparseTrack.graphsparsetrack.evaluator import inference_on_dataset
 from projects.FairMOT.fairmot.dataset_mapper import MOTFairMOTDatasetMapper
-from projects.GraphSparseTrack.graphsparsetrack.checkpointer import GSTCheckPointer
+from projects.SGT.sgt.evaluator import inference_on_dataset
+from projects.SGT.sgt.checkpointer import SGTCheckPointer
 
 
 def collect_weight_paths(cfg):
@@ -52,7 +51,7 @@ class Trainer(DefaultEpochTrainer):
 
     @classmethod
     def build_checkpointer(cls, model, output_dir, optimizer, scheduler):
-        checkpointer = GSTCheckPointer(
+        checkpointer = SGTCheckPointer(
             # Assume you want to save checkpoints together with logs/statistics
             model,
             output_dir,
@@ -199,8 +198,5 @@ class Trainer(DefaultEpochTrainer):
             optimizer.add_param_group({'params': model.detector.upsample.parameters()})
             optimizer.add_param_group({'params': model.detector.head.parameters()})
             optimizer.add_param_group({'params': model.tracker.parameters()})
-        if cfg.MODEL.GRAPHSPARSETRACK.AUTO_WEIGHT_FLAG:
-            optimizer.add_param_group({'params': model.tracker.loss_net.parameters()})
-            # optimizer.add_param_group({'params': model.s_cls})
-            # optimizer.add_param_group({'params': model.s_det})
+
         return optimizer

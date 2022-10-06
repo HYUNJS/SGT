@@ -18,9 +18,9 @@ from projects.Datasets.MIX.builtin import register_mix_tgt
 from projects.Datasets.MOT.config import add_mot_dataset_config
 from projects.Datasets.MIX.config import add_mix_dataset_config
 from projects.Datasets.arg_parser import add_dataset_parser
-from projects.GraphSparseTrack.graphsparsetrack.config import add_graphsparsetrack_config
-from projects.GraphSparseTrack.graphsparsetrack.checkpointer import GSTCheckPointer
-from projects.GraphSparseTrack.graphsparsetrack.trainer import Trainer, collect_weight_paths
+from projects.SGT.sgt.config import add_sgt_config
+from projects.SGT.sgt.checkpointer import SGTCheckPointer
+from projects.SGT.sgt.trainer import Trainer, collect_weight_paths
 
 torch.set_printoptions(linewidth=1320, precision=5, profile='long')
 np.set_printoptions(linewidth=320, formatter={'float_kind': '{:11.5g}'.format})  # format short g, %precision=5
@@ -34,7 +34,7 @@ def setup(args):
     add_epoch_trainer_config(cfg)
     add_mot_dataset_config(cfg)
     add_mix_dataset_config(cfg)
-    add_graphsparsetrack_config(cfg)
+    add_sgt_config(cfg)
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.freeze()
@@ -50,7 +50,7 @@ def main(args):
     paths = collect_weight_paths(cfg)
     if args.eval_only:
         model = Trainer.build_model(cfg)
-        GSTCheckPointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
+        SGTCheckPointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             paths=paths, resume=args.resume
         )
         res = Trainer.test(cfg, model)

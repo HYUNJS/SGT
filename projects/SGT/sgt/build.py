@@ -14,12 +14,12 @@ def build_detector(cfg):
     return model
 
 
-def build_tracker(cfg, backbone_out_feat_dim):
+def build_tracker(cfg):
     """
     Build the whole model architecture, defined by ``cfg.MODEL.META_ARCHITECTURE``.
     Note that it does not load any weights from ``cfg``.
     """
     meta_arch = cfg.MODEL.TRACKER.META_ARCHITECTURE
-    model = META_ARCH_REGISTRY.get(meta_arch)(cfg, backbone_out_feat_dim)
+    model = META_ARCH_REGISTRY.get(meta_arch)(cfg)
     model.to(torch.device(cfg.MODEL.DEVICE))
     return model

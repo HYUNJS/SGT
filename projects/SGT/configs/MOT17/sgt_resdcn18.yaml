@@ -19,9 +19,6 @@ MODEL:
   TRACKER:
     INIT_DET_THRESH: 0.5
     ENABLED: True
-    CUT_DET_GRAD: True
-    CUT_ID_GRAD: False
-    CUT_EDGE_GRAD: False
     META_ARCHITECTURE: "GraphTracker"
     GNN:
       TOPK_DET_FLAG: True
@@ -29,13 +26,10 @@ MODEL:
       DET_LOW_THRESH: 0.1
       NODE_MODEL:
         CLASSIFY:
-          CLS:
-            FLAG: True
-            INF_THRESH: 0.4
-            LOSS_WEIGHT: 10.0
+          FLAG: True
+          INF_THRESH: 0.4
+          LOSS_WEIGHT: 10.0
       EDGE_MODEL:
-        ENCODE:
-          EDGE_ATTR_LEGACY: False
         CLASSIFY:
           INF_THRESH: 0.4
           LOSS_WEIGHT: 1.0 # 0.1

@@ -34,7 +34,7 @@ def append_prefix(state_dict: Dict[str, Any], prefix: str) -> None:
             newkey = prefix + key
             metadata[newkey] = metadata.pop(key)
 
-class GSTCheckPointer(Checkpointer):
+class SGTCheckPointer(Checkpointer):
     def __init__(self, model, save_dir="",  *, save_to_disk=None, **checkpointables):
         if isinstance(model, DistributedDataParallel):
             model = model.module

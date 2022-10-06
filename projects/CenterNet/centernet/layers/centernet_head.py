@@ -55,7 +55,6 @@ class CenternetHead(nn.Module):
         else:
             self.wh_head = SingleHead(in_channels, cfg.MODEL.CENTERNET.HEAD.INTER_CHANNELS, 2)
         self.reg_head = SingleHead(in_channels, cfg.MODEL.CENTERNET.HEAD.INTER_CHANNELS, 2)
-        # self.identity_on = cfg.MODEL.IDENTITY_ON
         self.identity_on = cfg.MODEL.IDENTITY_ON and cfg.MODEL.CENTERNET.ID_LOSS
         if self.identity_on:
             self.id_head = SingleHead(

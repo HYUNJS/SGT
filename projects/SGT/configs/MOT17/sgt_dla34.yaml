@@ -1,11 +1,10 @@
 _BASE_: "../Base-SGT.yaml"
 MODEL:
 #  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17.pth"
-  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17-CH.pth"
-#  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17half.pth"
+#  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17-CH.pth"
+  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17half.pth"
 #  WEIGHTS: "/root/checkpoints/sgt_dla34_mot17half-CH.pth"
-  GRAPHSPARSETRACK:
-    VIS_PATH: ''
+  SGT:
     INFERENCE_GT: False
   DETECTOR:
     META_ARCHITECTURE: "CenterNet"
@@ -18,13 +17,10 @@ MODEL:
       DET_LOW_THRESH: 0.2
       NODE_MODEL:
         CLASSIFY:
-          CLS:
-            FLAG: True
-            INF_THRESH: 0.4
-            LOSS_WEIGHT: 10.0
+          FLAG: True
+          INF_THRESH: 0.4
+          LOSS_WEIGHT: 10.0
       EDGE_MODEL:
-        ENCODE:
-          EDGE_ATTR_LEGACY: False
         CLASSIFY:
           INF_THRESH: 0.4
 #          LOSS_WEIGHT: 0.1

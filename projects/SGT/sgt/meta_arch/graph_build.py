@@ -5,9 +5,8 @@ import torchvision.ops as ops
 import numpy as np
 
 
-def build_sparse_graph(t1_info_for_graph, t2_info_for_graph, images_whwh, k=20, mask_out_zero_iou_flag=False,
-                       edge_attr=[], cut_edge_grad=False, directional_edge_attr=True, edge_attr_legacy=True,
-                       graph_attr=['iou', 'sim', 'dist'], cos_sim_by_node_feat=False):
+def build_sparse_graph(t1_info_for_graph, t2_info_for_graph, images_whwh, k=20,
+                       directional_edge_attr=True, edge_attr=[], graph_attr=['iou', 'sim', 'dist']):
     '''
     Suppose the number of previous boxes (t1) is dynamic so the boxes in the batches are listed.
     In contrast, the number of current boxes (t2) is fixed by 'num_proposals' (t2_info_for_graph['box_nums'])
@@ -32,18 +31,12 @@ def build_sparse_graph(t1_info_for_graph, t2_info_for_graph, images_whwh, k=20, 
         length of list is batch size
     k: int
         topK edges for each graph_attr
-    mask_out_zero_iou_flag: boolean
-        filter out edges which iou is zero
     edge_attr: List(str)
         'xy_diff' | 'wh_ratio' | 'cos_sim' | 'iou'
-    cut_edge_grad: boolean
-        detach initial edge features gradient (e.g. cos sim)
     directional_edge_attr: boolean
         edge attributes care the direction (e.g. xy_diff)
     graph_attr: List(str)
         attributes to be used for making edges
-    cos_sim_by_node_feat: boolean
-        If True, cos sim for edge feature is computed from the node features, instead of backbone's features
 
     Returns:
         graph_batch: torch_geometric.data.Batch(batch, edge_attr, edge_index, x)
@@ -103,12 +96,8 @@ def build_sparse_graph(t1_info_for_graph, t2_info_for_graph, images_whwh, k=20, 
         ## find trk-det pairs - topk cosine similarity score
         t1_fmap_feat = t1_fmap_feats[t1_curr_idx:t1_next_idx]
         t2_fmap_feat = t2_fmap_feats[t2_curr_idx:t2_next_idx]
-        if cut_edge_grad or cos_sim_by_node_feat:
-            scaled_t1_fmap_feat = F.normalize(t1_fmap_feat.detach(), dim=1, eps=1e-8)
-            scaled_t2_fmap_feat = F.normalize(t2_fmap_feat.detach(), dim=1, eps=1e-8)
-        else:
-            scaled_t1_fmap_feat = F.normalize(t1_fmap_feat, dim=1, eps=1e-8)
-            scaled_t2_fmap_feat = F.normalize(t2_fmap_feat, dim=1, eps=1e-8)
+        scaled_t1_fmap_feat = F.normalize(t1_fmap_feat, dim=1, eps=1e-8)
+        scaled_t2_fmap_feat = F.normalize(t2_fmap_feat, dim=1, eps=1e-8)
         cos_sim_mat = torch.matmul(scaled_t1_fmap_feat, scaled_t2_fmap_feat.t())
         sim_max_v, sim_max_idx = cos_sim_mat.topk(k=edge_k, dim=1)
 
@@ -125,13 +114,8 @@ def build_sparse_graph(t1_info_for_graph, t2_info_for_graph, images_whwh, k=20, 
         t1_idx_dict, t2_idx_dict = {}, {}
         t1_idx_matrix = (torch.arange(t1_box_num, dtype=torch.long, device=device) + t2_box_num).unsqueeze(1).repeat(1, edge_k)
         if 'iou' in graph_attr:
-            if mask_out_zero_iou_flag:
-                pos_iou_mask = iou_max_v > 0
-                t2_idx_dict['iou'] = iou_max_idx[pos_iou_mask]
-                t1_idx_dict['iou'] = t1_idx_matrix[pos_iou_mask]
-            else:
-                t2_idx_dict['iou'] = iou_max_idx.flatten(0, 1)
-                t1_idx_dict['iou'] = t1_idx_matrix.flatten(0, 1)
+            t2_idx_dict['iou'] = iou_max_idx.flatten(0, 1)
+            t1_idx_dict['iou'] = t1_idx_matrix.flatten(0, 1)
         if 'sim' in graph_attr:
             t2_idx_dict['sim'] = sim_max_idx.flatten(0, 1)
             t1_idx_dict['sim'] = t1_idx_matrix.flatten(0, 1)
@@ -175,10 +159,7 @@ def build_sparse_graph(t1_info_for_graph, t2_info_for_graph, images_whwh, k=20, 
             edge_feat.append(xy_diff[:, 1])
 
         if 'wh_ratio' in edge_attr:
-            if edge_attr_legacy:
-                wh_ratio = whs_t1_by_idx / (whs_t2_by_idx + 1e-8)  ## previous version
-            else:
-                wh_ratio = whs_t2_by_idx / (whs_t1_by_idx + 1e-8) ## updated version
+            wh_ratio = whs_t2_by_idx / (whs_t1_by_idx + 1e-8) ## updated version
             # wh_ratio = torch.log(wh_ratio)
             wh_ratio = torch.log(wh_ratio + 1e-8)  # to avoid -inf when wh_ratio = 0
             # wh_ratio = torch.log(wh_ratio + 1) # this scaling constrains the minimum to be zero
@@ -190,14 +171,6 @@ def build_sparse_graph(t1_info_for_graph, t2_info_for_graph, images_whwh, k=20, 
             edge_feat.append(wh_ratio[:, 1])
 
         if 'cos_sim' in edge_attr:
-            if cos_sim_by_node_feat:
-                if cut_edge_grad:
-                    scaled_t1_node_feat = F.normalize(t1_node_feat.detach(), dim=1, eps=1e-8)
-                    scaled_t2_node_feat = F.normalize(t2_node_feat.detach(), dim=1, eps=1e-8)
-                else:
-                    scaled_t1_node_feat = F.normalize(t1_node_feat, dim=1, eps=1e-8)
-                    scaled_t2_node_feat = F.normalize(t2_node_feat, dim=1, eps=1e-8)
-                cos_sim_mat = torch.matmul(scaled_t1_node_feat, scaled_t2_node_feat.t())
             sim_score = cos_sim_mat[unique_edge_idx[1] - t2_box_num, unique_edge_idx[0]]
             sim_score = torch.cat([sim_score, sim_score])
             edge_feat.append(sim_score)

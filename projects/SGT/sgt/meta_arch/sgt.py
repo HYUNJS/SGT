@@ -6,16 +6,16 @@ import os.path as osp
 from detectron2.modeling.meta_arch.build import META_ARCH_REGISTRY
 from detectron2.structures import Boxes, Instances
 
-from projects.GraphSparseTrack.graphsparsetrack.build import build_detector, build_tracker
 from projects.Datasets.Transforms.augmentation import CenterAffine
-from projects.GraphSparseTrack.graphsparsetrack.meta_arch.loss import MultiLossNet
+from projects.SGT.sgt.build import build_detector, build_tracker
+from projects.SGT.sgt.meta_arch.loss import MultiLossNet
 
 
-__all__ = ["GraphSparseTrack"]
+__all__ = ["SparseGraphTracker"]
 
 
 @META_ARCH_REGISTRY.register()
-class GraphSparseTrack(nn.Module):
+class SparseGraphTracker(nn.Module):
     """
     Generalized Tracker. Any models that contains the following two components:
     1. Per-image object detector
@@ -25,8 +25,7 @@ class GraphSparseTrack(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.detector = build_detector(cfg)
-        backbone_out_feat_dim = self.detector.upsample.out_channels
-        self.tracker = build_tracker(cfg, backbone_out_feat_dim)
+        self.tracker = build_tracker(cfg)
         self.loss_net = MultiLossNet(cfg)
         self.cur_seq_name = ""
         self.seq_name_list = []
@@ -52,8 +51,7 @@ class GraphSparseTrack(nn.Module):
             det_loss_dict = detector_outs['losses']
             trk_loss_dict, edge_cls_metrics = self.tracker(detector_outs, batched_inputs=batched_inputs)
             final_loss_dict = self.loss_net(det_loss_dict, trk_loss_dict)
-            if edge_cls_metrics is not None:
-                final_loss_dict.update(edge_cls_metrics)
+
             return final_loss_dict
 
     @torch.no_grad()
@@ -111,6 +109,7 @@ class GraphSparseTrack(nn.Module):
         output = dict(pred_boxes=boxes, scores=scores, pred_classes=classes, pred_ids=tids)
         ori_w, ori_h = img_info['center'] * 2
         det_instance = Instances((int(ori_h), int(ori_w)), **output)
+
         return [{"instances": det_instance}]
 
     @staticmethod
@@ -129,6 +128,7 @@ class GraphSparseTrack(nn.Module):
         h = (boxes[:, 2] - boxes[:, 0]) > 1
         w = (boxes[:, 3] - boxes[:, 1]) > 1
         valid_size_mask = np.logical_and(h, w)
+
         return boxes, valid_size_mask
 
     @staticmethod
@@ -155,4 +155,5 @@ class GraphSparseTrack(nn.Module):
         coords = boxes.reshape(-1, 2)
         aug_coords = np.column_stack((coords, np.ones(coords.shape[0])))
         target_boxes = np.dot(aug_coords, trans.T).reshape(-1, 4)
+
         return target_boxes
