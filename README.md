@@ -6,6 +6,9 @@
 
 Official code for Sparse Graph Tracker (SGT) based on the Detectron2 framework. Please feel free to leave an ISSUE or send me an email (jhyunaa@ust.hk).
 
+## News
+* (2022.10.11) Our paper is accepted WACV 2023! (arxiv paper will be updated soon)
+* (2022.10.06) Code and pretrained weights are released!
 
 ## Installation
 * Please refer [INSTALL.md](INSTALL.md) for the details 
