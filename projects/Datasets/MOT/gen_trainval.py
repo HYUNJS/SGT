@@ -74,8 +74,8 @@ def get_parser():
 
 if __name__ == "__main__":
     args = get_parser().parse_args()
-    # mot17_spliter = MOT_Spliter(args.data_root, 'mot17')
-    # mot17_spliter.trainval_split()
+    mot17_spliter = MOT_Spliter(args.data_root, 'mot17')
+    mot17_spliter.trainval_split()
     mot20_spliter = MOT_Spliter(args.data_root, 'mot20')
     mot20_spliter.trainval_split()
 
