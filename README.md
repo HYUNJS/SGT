@@ -85,11 +85,10 @@ This codebase also provides Detectron2 version of [FairMOT](https://github.com/i
 
 ## Citation
 
-```BibTeX
-@article{hyun2022detection,
-  title={Detection Recovery in Online Multi-Object Tracking with Sparse Graph Tracker},
+@inproceedings{hyun2023detection,
+  title={Detection recovery in online multi-object tracking with sparse graph tracker},
   author={Hyun, Jeongseok and Kang, Myunggu and Wee, Dongyoon and Yeung, Dit-Yan},
-  journal={arXiv preprint arXiv:2205.00968},
-  year={2022}
+  booktitle={Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision},
+  pages={4850--4859},
+  year={2023}
 }
-```
