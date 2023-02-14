@@ -84,7 +84,7 @@ SGT is based on the framework [Detectron2](https://github.com/facebookresearch/d
 This codebase also provides Detectron2 version of [FairMOT](https://github.com/ifzhang/FairMOT) which is released under the MIT license.
 
 ## Citation
-
+```BibTeX
 @inproceedings{hyun2023detection,
   title={Detection recovery in online multi-object tracking with sparse graph tracker},
   author={Hyun, Jeongseok and Kang, Myunggu and Wee, Dongyoon and Yeung, Dit-Yan},
@@ -92,3 +92,4 @@ This codebase also provides Detectron2 version of [FairMOT](https://github.com/i
   pages={4850--4859},
   year={2023}
 }
+```
