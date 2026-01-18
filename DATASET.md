@@ -30,7 +30,7 @@ $DATA_ROOT/
 
 ### MOT17/20 Dataset
 1) Download from https://motchallenge.net/
-   * Due to slow download speed, we share the datasets via OneDrive [MOT17](https://drive.google.com/file/d/1i31TCCno9EGqR3oeFEznnRfWXDwhz1Aw/view?usp=sharing) and [MOT20](https://drive.google.com/file/d/18S_DGfQuMREw9zq1g-sesl_6F6eL3hgr/view?usp=sharing)
+   * Due to slow download speed, we share the datasets via Google Drive [MOT17](https://drive.google.com/file/d/1i31TCCno9EGqR3oeFEznnRfWXDwhz1Aw/view?usp=sharing) and [MOT20](https://drive.google.com/file/d/18S_DGfQuMREw9zq1g-sesl_6F6eL3hgr/view?usp=sharing)
 2) Organize as below:
 ```
 $DATA_ROOT/
@@ -103,4 +103,5 @@ python projects/Datasets/Hieve/hieve2mot.py --data-root <$DATA_ROOT>
 ```
 python projects/Datasets/Hieve/gen_labels_hieve.py --data-root <$DATA_ROOT>
 ```
+
 
