@@ -1,10 +1,6 @@
 # Sparse Graph Tracker (SGT)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-recovery-in-online-multi-object/multi-object-tracking-on-hieve)](https://paperswithcode.com/sota/multi-object-tracking-on-hieve?p=detection-recovery-in-online-multi-object)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-recovery-in-online-multi-object/multi-object-tracking-on-mot16)](https://paperswithcode.com/sota/multi-object-tracking-on-mot16?p=detection-recovery-in-online-multi-object)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-recovery-in-online-multi-object/multi-object-tracking-on-mot17)](https://paperswithcode.com/sota/multi-object-tracking-on-mot17?p=detection-recovery-in-online-multi-object)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-recovery-in-online-multi-object/multi-object-tracking-on-mot20-1)](https://paperswithcode.com/sota/multi-object-tracking-on-mot20-1?p=detection-recovery-in-online-multi-object)
 
-Official code for Sparse Graph Tracker (SGT) based on the Detectron2 framework. Please feel free to leave an ISSUE or send me an email (jhyunaa@ust.hk).
+Official code for Sparse Graph Tracker (SGT) based on the Detectron2 framework. Please feel free to leave an ISSUE or send me an email (js-hyun@yonsei.ac.kr).
 
 ## News
 * (2022.10.11) Our paper is accepted WACV 2023! (arxiv paper will be updated soon)
@@ -16,25 +12,25 @@ Official code for Sparse Graph Tracker (SGT) based on the Detectron2 framework. 
 * Please refer [DATASET.md](DATASET.md) for the details
 
 ## Model Zoo
-- [download model weights](https://hkustconnect-my.sharepoint.com/:f:/g/personal/jhyunaa_connect_ust_hk/ErLZ6DG6CndHs-Lo12AxZKAB1kb4AJCh8adtnRAlXTNuzA?e=rKeboA)
+- [download model weights](https://drive.google.com/drive/folders/1Fxsz-ffSN125IsIvujwI9KR0swpQjG7A?usp=sharing)
 * Please modify the path of checkpoints in the config file based on your checkpoint directory
 
 ### MOT17
 | Name | Dataset | HOTA | MOTA | IDF1| Download |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| SGT | MOT17 | 58.2 | 73.2 | 70.2 | [model](https://hkustconnect-my.sharepoint.com/:u:/g/personal/jhyunaa_connect_ust_hk/EQW4mXblacdDtVc3uxaTsXYB2yqqUTQv9cwnBipAnpKblA?e=9pT2RO) |
-| SGT | MOT17 + CrowdHuman | 60.8 | 76.4 | 72.8 | [model](https://hkustconnect-my.sharepoint.com/:u:/g/personal/jhyunaa_connect_ust_hk/EST0ZaRgqvlJoW2TGFpCUToBRUzGRkgXZQva32rypzWdZQ?e=OzCVgI) |
+| SGT | MOT17 | 58.2 | 73.2 | 70.2 | [model](https://drive.google.com/file/d/10yhPDsJjUtwUFUDiDaBWdqfHAxXRA509/view?usp=sharing) |
+| SGT | MOT17 + CrowdHuman | 60.8 | 76.4 | 72.8 | [model](https://drive.google.com/file/d/1GhGE1ufzNqktkFgZ5SyR09vbiPOjMWao/view?usp=sharing) |
 
 ### MOT20
 | Name | Dataset | HOTA | MOTA | IDF1| Download |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| SGT | MOT20 | 51.6 | 64.5 | 62.7 | [model](https://hkustconnect-my.sharepoint.com/:u:/g/personal/jhyunaa_connect_ust_hk/EVQks100QaRNp81QlSoQbwMBgncyxw-4cmE_eIrR3JPJoA?e=hQIHxF) |
-| SGT | MOT20 + CrowdHuman | 57.0 | 72.8 | 70.6 | [model](https://hkustconnect-my.sharepoint.com/:u:/g/personal/jhyunaa_connect_ust_hk/EZWXTwJFbPNBs2d32RVAa84BYTjImlYMSsz-Fp4lt8aE6A?e=qiOoHw) |
+| SGT | MOT20 | 51.6 | 64.5 | 62.7 | [model](https://drive.google.com/file/d/1ddR_Hl34IJlAncOG7zKukp0GgTkVaUKX/view?usp=sharing) |
+| SGT | MOT20 + CrowdHuman | 57.0 | 72.8 | 70.6 | [model](https://drive.google.com/file/d/1be0cpYPJ11ZSyg24y94y_wH2uH1dZCep/view?usp=sharing) |
 
 ### HiEve
 | Name | Dataset | MOTA | IDF1 | Download |
 | :---: | :---: | :---: | :---: | :---: | 
-| SGT | HiEve | 47.2 | 53.7 | [model](https://hkustconnect-my.sharepoint.com/:u:/g/personal/jhyunaa_connect_ust_hk/EVQks100QaRNp81QlSoQbwMBgncyxw-4cmE_eIrR3JPJoA?e=hQIHxF) |
+| SGT | HiEve | 47.2 | 53.7 | [model](https://drive.google.com/file/d/1UaSqPLhe7ZRkBdIUACMOneEQjsENaSWv/view?usp=sharing) |
 
 ## How to run?
 
